@@ -1,0 +1,65 @@
+service: aws-test
+
+variablesResolutionMode: 20210326
+
+package:
+  patterns:
+    - "!.idea/**"
+    - "!.serverless/**"
+    - "!venv/**"
+    - "!node_modules/**"
+    - "!package.json"
+    - "!package-lock.json"
+    - "!README.md"
+    - "!.gitignore"
+    - "!tests/**"
+    - "!.coverage"
+    - "!.env"
+    - "!.dynamodb/**"
+    - "!utilites/**"
+    - "!Pipfile"
+    - "!Pipfile.lock"
+
+custom:
+  pythonRequirements:
+    slim: true
+    dockerizePip: non-linux
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  runtime: python3.8
+  region: eu-west-2
+  lambdaHashingVersion: 20201221
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - lambda:InvokeFunction
+          Resource: "*"
+  environment:
+    STAGE: ${self:provider.stage}
+    BOT_TOKEN: ${ssm:/telegram/bot/token}
+    CHAT_ID: ${ssm:/telegram/chat_id}
+
+functions:
+  send_message_to_telegram:
+    handler: app.send_message_to_telegram
+    events:
+      - http:
+          path: /message
+          method: POST
+          cors: true
+  test:
+    handler: app.test
+    events:
+      - http:
+          path: /test
+          method: POST
+          cors: true
+
+plugins:
+  - serverless-offline
+  - serverless-python-requirements
+  - serverless-export-env
